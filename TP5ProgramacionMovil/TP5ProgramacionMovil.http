@@ -1,0 +1,6 @@
+@TP5ProgramacionMovil_HostAddress = http://localhost:5041
+
+GET {{TP5ProgramacionMovil_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
