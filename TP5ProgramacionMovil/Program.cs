@@ -1,5 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using TP5ProgramacionMovil.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Obtener la cadena de conexión de appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Registrar el DataContext para usar SQL Server
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlServer(connectionString));
 // Add services to the container.
 
 builder.Services.AddControllers();
