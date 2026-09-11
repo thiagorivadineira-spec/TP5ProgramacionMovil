@@ -8,10 +8,24 @@ namespace TP5ProgramacionMovil.Models
         public int Id { get; set; }
 
         [Required]
+        [MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required]
         [MaxLength(50)]
         public string Username { get; set; } = string.Empty;
 
         [Required]
-        public string Password { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string Rol { get; set; } = string.Empty;
+
+        public bool Activo { get; set; } = true;
+
+        public ICollection<Compra> Compras { get; set; } = new List<Compra>();
+
+        public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
     }
 }

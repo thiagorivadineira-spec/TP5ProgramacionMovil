@@ -18,6 +18,6 @@ namespace TP5ProgramacionMovil.Models
         public int Cantidad { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
-        public decimal PrecioVenta { get; set; }
+        public decimal PrecioUnitario { get; set; }
     }
 }
