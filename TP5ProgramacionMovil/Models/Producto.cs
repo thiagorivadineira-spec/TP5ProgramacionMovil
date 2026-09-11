@@ -12,13 +12,28 @@ namespace TP5ProgramacionMovil.Models
         [MaxLength(100)]
         public string Nombre { get; set; } = string.Empty;
 
-        public int Stock { get; set; }
+        [MaxLength(255)]
+        public string? Descripcion { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
-        public decimal Precio { get; set; }
+        public decimal PrecioVenta { get; set; }
+
+        public int StockActual { get; set; }
+
+        public int PuntoReposicion { get; set; }
+
+        public int StockMaximo { get; set; }
+
+        [MaxLength(255)]
+        public string? ImagenUrl { get; set; }
+
+        public bool Activo { get; set; } = true;
 
         // Clave foránea
         public int CategoriaProductoId { get; set; }
         public CategoriaProducto CategoriaProducto { get; set; } = null!;
+
+        public ICollection<DetalleCompra> DetallesCompra { get; set; } = new List<DetalleCompra>();
+        public ICollection<DetalleVenta> DetallesVenta { get; set; } = new List<DetalleVenta>();
     }
 }
