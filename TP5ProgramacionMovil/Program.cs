@@ -28,6 +28,21 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Habilitar archivos estáticos de wwwroot
+app.UseStaticFiles();
+
+// Crear la carpeta wwwroot/uploads si no existe
+var uploadsPath = Path.Combine(
+    app.Environment.WebRootPath
+        ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+    "uploads"
+);
+
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+
 app.UseAuthorization();
 
 app.MapControllers();

@@ -24,9 +24,6 @@ namespace TP5ProgramacionMovil.Models
 
         public int StockMaximo { get; set; }
 
-        [MaxLength(255)]
-        public string? ImagenUrl { get; set; }
-
         public bool Activo { get; set; } = true;
 
         // Clave foránea
@@ -35,5 +32,8 @@ namespace TP5ProgramacionMovil.Models
 
         public ICollection<DetalleCompra> DetallesCompra { get; set; } = new List<DetalleCompra>();
         public ICollection<DetalleVenta> DetallesVenta { get; set; } = new List<DetalleVenta>();
+
+        // Imágenes
+        public ICollection<Imagen> Imagenes { get; set; } = new List<Imagen>();
     }
 }

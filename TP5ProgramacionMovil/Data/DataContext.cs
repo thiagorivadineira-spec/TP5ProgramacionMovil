@@ -20,12 +20,20 @@ namespace TP5ProgramacionMovil.Data
         public DbSet<DetalleCompra> DetallesCompras { get; set; }
         public DbSet<Venta> Ventas { get; set; }
         public DbSet<DetalleVenta> DetallesVentas { get; set; }
+        public DbSet<Imagen> Imagenes { get; set; }
 
         // Seed Data para prueba de Endpoints Compras, Productos, Proveedores y Categorias
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Relación Producto -> Imagenes
+            modelBuilder.Entity<Imagen>()
+                .HasOne(i => i.Producto)
+                .WithMany(p => p.Imagenes)
+                .HasForeignKey(i => i.ProductoId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // CATEGORÍAS
             modelBuilder.Entity<CategoriaProducto>().HasData(
@@ -94,7 +102,6 @@ namespace TP5ProgramacionMovil.Data
                     StockActual = 20,
                     PuntoReposicion = 5,
                     StockMaximo = 30,
-                    ImagenUrl = (string?)null,
                     Activo = true,
                     CategoriaProductoId = 1
                 },
@@ -107,7 +114,6 @@ namespace TP5ProgramacionMovil.Data
                     StockActual = 12,
                     PuntoReposicion = 4,
                     StockMaximo = 20,
-                    ImagenUrl = (string?)null,
                     Activo = true,
                     CategoriaProductoId = 1
                 },
@@ -120,7 +126,6 @@ namespace TP5ProgramacionMovil.Data
                     StockActual = 8,
                     PuntoReposicion = 3,
                     StockMaximo = 15,
-                    ImagenUrl = (string?)null,
                     Activo = true,
                     CategoriaProductoId = 2
                 },
@@ -133,7 +138,6 @@ namespace TP5ProgramacionMovil.Data
                     StockActual = 6,
                     PuntoReposicion = 2,
                     StockMaximo = 10,
-                    ImagenUrl = (string?)null,
                     Activo = true,
                     CategoriaProductoId = 4
                 }

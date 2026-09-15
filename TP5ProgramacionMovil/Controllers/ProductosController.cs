@@ -11,12 +11,24 @@ namespace TP5ProgramacionMovil.Controllers
     public class ProductosController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public ProductosController(DataContext context)
+        // Extensiones y tipos MIME permitidos
+        private readonly string[] _extensionesPermitidas =
+            [".jpg", ".jpeg", ".png"];
+
+        private readonly string[] _tiposMimePermitidos =
+            ["image/jpeg", "image/png"];
+
+        private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
+
+        public ProductosController(
+            DataContext context,
+            IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
-
         // GET: api/Productos
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductoResponseDto>>> GetProductos()
@@ -33,7 +45,15 @@ namespace TP5ProgramacionMovil.Controllers
                     StockActual = p.StockActual,
                     PuntoReposicion = p.PuntoReposicion,
                     StockMaximo = p.StockMaximo,
-                    ImagenUrl = p.ImagenUrl,
+                    Imagenes = p.Imagenes.Select(i => new ImagenResponseDto
+                    {
+                        Id = i.Id,
+                        NombreOriginal = i.NombreOriginal,
+                        Url = "/" + i.RutaRelativa,
+                        TipoContenido = i.TipoContenido,
+                        TamanoBytes = i.TamanoBytes,
+                        FechaCreacion = i.FechaCreacion
+                    }).ToList(),
                     Activo = p.Activo,
                     CategoriaProductoId = p.CategoriaProductoId,
                     CategoriaNombre = p.CategoriaProducto.Nombre
@@ -60,7 +80,15 @@ namespace TP5ProgramacionMovil.Controllers
                     StockActual = p.StockActual,
                     PuntoReposicion = p.PuntoReposicion,
                     StockMaximo = p.StockMaximo,
-                    ImagenUrl = p.ImagenUrl,
+                    Imagenes = p.Imagenes.Select(i => new ImagenResponseDto
+                    {
+                        Id = i.Id,
+                        NombreOriginal = i.NombreOriginal,
+                        Url = "/" + i.RutaRelativa,
+                        TipoContenido = i.TipoContenido,
+                        TamanoBytes = i.TamanoBytes,
+                        FechaCreacion = i.FechaCreacion
+                    }).ToList(),
                     Activo = p.Activo,
                     CategoriaProductoId = p.CategoriaProductoId,
                     CategoriaNombre = p.CategoriaProducto.Nombre
@@ -121,7 +149,7 @@ namespace TP5ProgramacionMovil.Controllers
                 StockActual = producto.StockActual,
                 PuntoReposicion = producto.PuntoReposicion,
                 StockMaximo = producto.StockMaximo,
-                ImagenUrl = producto.ImagenUrl,
+                Imagenes = new List<ImagenResponseDto>(),
                 Activo = producto.Activo,
                 CategoriaProductoId = producto.CategoriaProductoId,
                 CategoriaNombre = categoria?.Nombre
@@ -132,6 +160,119 @@ namespace TP5ProgramacionMovil.Controllers
                 new { id = producto.Id },
                 response
             );
+        }
+
+        // POST: api/Productos/{id}/imagenes
+        [HttpPost("{id}/imagenes")]
+        public async Task<ActionResult<ImagenResponseDto>> SubirImagen(
+            int id,
+            IFormFile archivo)
+        {
+            // 1. Validar existencia del producto
+            var producto = await _context.Productos.FindAsync(id);
+
+            if (producto == null)
+            {
+                return NotFound(new
+                {
+                    mensaje = $"El producto con ID {id} no existe."
+                });
+            }
+
+            // 2. Validar que se haya enviado un archivo
+            if (archivo == null || archivo.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Debe proporcionar un archivo de imagen válido."
+                });
+            }
+
+            // 3. Validar tamaño máximo
+            if (archivo.Length > MaxFileSize)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El archivo excede el tamaño máximo permitido de 5 MB."
+                });
+            }
+
+            // 4. Validar extensión
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+
+            if (!_extensionesPermitidas.Contains(extension))
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Formato no permitido. Solo se aceptan archivos PNG y JPG/JPEG."
+                });
+            }
+
+            // 5. Validar tipo MIME
+            if (!_tiposMimePermitidos.Contains(archivo.ContentType.ToLowerInvariant()))
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Tipo MIME inválido para la imagen."
+                });
+            }
+
+            // 6. Preparar carpeta wwwroot/uploads
+            var webRoot = _env.WebRootPath
+                ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+
+            var uploadsDir = Path.Combine(webRoot, "uploads");
+
+            if (!Directory.Exists(uploadsDir))
+            {
+                Directory.CreateDirectory(uploadsDir);
+            }
+
+            // 7. Generar nombre único
+            var nombreUnico = $"{Guid.NewGuid()}{extension}";
+
+            var rutaFisicaCompleta =
+                Path.Combine(uploadsDir, nombreUnico);
+
+            // 8. Guardar archivo en disco
+            using (var stream = new FileStream(
+                rutaFisicaCompleta,
+                FileMode.Create))
+            {
+                await archivo.CopyToAsync(stream);
+            }
+
+            // 9. Registrar imagen en la base de datos
+            var rutaRelativa = $"uploads/{nombreUnico}";
+
+            var imagen = new Imagen
+            {
+                NombreOriginal = Path.GetFileName(archivo.FileName),
+                NombreArchivo = nombreUnico,
+                RutaRelativa = rutaRelativa,
+                TipoContenido = archivo.ContentType,
+                TamanoBytes = archivo.Length,
+                ProductoId = id
+            };
+
+            _context.Imagenes.Add(imagen);
+
+            await _context.SaveChangesAsync();
+
+            // 10. Armar URL pública
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+            var dto = new ImagenResponseDto
+            {
+                Id = imagen.Id,
+                NombreOriginal = imagen.NombreOriginal,
+                Url = $"{baseUrl}/{imagen.RutaRelativa}",
+                TipoContenido = imagen.TipoContenido,
+                TamanoBytes = imagen.TamanoBytes,
+                FechaCreacion = imagen.FechaCreacion
+            };
+
+            return Created($"/api/Productos/{id}", dto);
         }
 
         // PUT: api/Productos/5
