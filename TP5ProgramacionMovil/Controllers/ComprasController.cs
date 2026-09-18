@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TP5ProgramacionMovil.Data;
 using TP5ProgramacionMovil.DTOs;
@@ -6,6 +8,7 @@ using TP5ProgramacionMovil.Models;
 
 namespace TP5ProgramacionMovil.Controllers
 {
+    [Authorize] // Requiere autenticación para acceder a este controlador
     [ApiController]
     [Route("api/[controller]")]
     public class ComprasController : ControllerBase
