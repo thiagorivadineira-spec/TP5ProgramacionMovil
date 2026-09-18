@@ -19,12 +19,12 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Swagger en entorno de desarrollo
-if (app.Environment.IsDevelopment())
-{
+// Swagger en entorno de produccion
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 app.UseHttpsRedirection();
 
