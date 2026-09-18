@@ -17,6 +17,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS permisivo
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPermisivo", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 var app = builder.Build();
 
 // Swagger en entorno de desarrollo
@@ -27,6 +38,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("CorsPermisivo");
 
 // Habilitar archivos estáticos de wwwroot
 app.UseStaticFiles();
