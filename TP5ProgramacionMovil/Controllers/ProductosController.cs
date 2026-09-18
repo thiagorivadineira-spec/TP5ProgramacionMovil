@@ -29,13 +29,45 @@ namespace TP5ProgramacionMovil.Controllers
             _context = context;
             _env = env;
         }
-        // GET: api/Productos
+
+        // GET: api/Productos?pagina=1&tamanoPagina=10&buscar=mouse&ordenarPor=precio_asc
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductoResponseDto>>> GetProductos()
+        public async Task<ActionResult<RespuestaPaginadaDto<ProductoResponseDto>>> GetProductos(
+            [FromQuery] ParametrosPaginacionDto parametros)
         {
-            var productos = await _context.Productos
+            // 1. Crear consulta base
+            var query = _context.Productos
                 .AsNoTracking()
-                .Include(p => p.CategoriaProducto)
+                .AsQueryable();
+
+            // 2. Filtro de búsqueda opcional
+            if (!string.IsNullOrWhiteSpace(parametros.Buscar))
+            {
+                var termino = parametros.Buscar.Trim().ToLower();
+
+                query = query.Where(p =>
+                    p.Nombre.ToLower().Contains(termino) ||
+                    (p.Descripcion != null &&
+                     p.Descripcion.ToLower().Contains(termino)));
+            }
+
+            // 3. Contar registros antes de paginar
+            var totalRegistros = await query.CountAsync();
+
+            // 4. Ordenamiento
+            query = parametros.OrdenarPor?.ToLower() switch
+            {
+                "nombre" => query.OrderBy(p => p.Nombre),
+                "nombre_desc" => query.OrderByDescending(p => p.Nombre),
+                "precio_asc" => query.OrderBy(p => p.PrecioVenta),
+                "precio_desc" => query.OrderByDescending(p => p.PrecioVenta),
+                _ => query.OrderBy(p => p.Id)
+            };
+
+            // 5. Aplicar paginación y convertir a DTO
+            var productos = await query
+                .Skip((parametros.Pagina - 1) * parametros.TamanoPagina)
+                .Take(parametros.TamanoPagina)
                 .Select(p => new ProductoResponseDto
                 {
                     Id = p.Id,
@@ -45,6 +77,7 @@ namespace TP5ProgramacionMovil.Controllers
                     StockActual = p.StockActual,
                     PuntoReposicion = p.PuntoReposicion,
                     StockMaximo = p.StockMaximo,
+
                     Imagenes = p.Imagenes.Select(i => new ImagenResponseDto
                     {
                         Id = i.Id,
@@ -54,13 +87,22 @@ namespace TP5ProgramacionMovil.Controllers
                         TamanoBytes = i.TamanoBytes,
                         FechaCreacion = i.FechaCreacion
                     }).ToList(),
+
                     Activo = p.Activo,
                     CategoriaProductoId = p.CategoriaProductoId,
                     CategoriaNombre = p.CategoriaProducto.Nombre
                 })
                 .ToListAsync();
 
-            return Ok(productos);
+            // 6. Armar respuesta con datos + información de paginación
+            var respuesta = new RespuestaPaginadaDto<ProductoResponseDto>(
+                productos,
+                totalRegistros,
+                parametros.Pagina,
+                parametros.TamanoPagina
+            );
+
+            return Ok(respuesta);
         }
 
         // GET: api/Productos/5

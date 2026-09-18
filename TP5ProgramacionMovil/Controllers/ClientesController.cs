@@ -17,12 +17,44 @@ namespace TP5ProgramacionMovil.Controllers
             _context = context;
         }
 
-        // 1. GET: api/Clientes (Obtener todos los clientes activos)
+        // GET: api/Clientes?pagina=1&tamanoPagina=10&buscar=juan&ordenarPor=nombre
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ClienteResponseDto>>> GetClientes()
+        public async Task<ActionResult<RespuestaPaginadaDto<ClienteResponseDto>>> GetClientes(
+            [FromQuery] ParametrosPaginacionDto parametros)
         {
-            var clientes = await _context.Clientes
-                .Where(c => c.Activo) // Solo traemos los activos (buena práctica)
+            var query = _context.Clientes
+                .AsNoTracking()
+                .Where(c => c.Activo)
+                .AsQueryable();
+
+            // Búsqueda opcional
+            if (!string.IsNullOrWhiteSpace(parametros.Buscar))
+            {
+                var termino = parametros.Buscar.Trim().ToLower();
+
+                query = query.Where(c =>
+                    c.Nombre.ToLower().Contains(termino) ||
+                    (c.Documento != null &&
+                     c.Documento.ToLower().Contains(termino)) ||
+                    (c.Email != null &&
+                     c.Email.ToLower().Contains(termino)));
+            }
+
+            // Total antes de paginar
+            var totalRegistros = await query.CountAsync();
+
+            // Ordenamiento
+            query = parametros.OrdenarPor?.ToLower() switch
+            {
+                "nombre" => query.OrderBy(c => c.Nombre),
+                "nombre_desc" => query.OrderByDescending(c => c.Nombre),
+                _ => query.OrderBy(c => c.Id)
+            };
+
+            // Paginación
+            var clientes = await query
+                .Skip((parametros.Pagina - 1) * parametros.TamanoPagina)
+                .Take(parametros.TamanoPagina)
                 .Select(c => new ClienteResponseDto
                 {
                     Id = c.Id,
@@ -35,7 +67,14 @@ namespace TP5ProgramacionMovil.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(clientes);
+            var respuesta = new RespuestaPaginadaDto<ClienteResponseDto>(
+                clientes,
+                totalRegistros,
+                parametros.Pagina,
+                parametros.TamanoPagina
+            );
+
+            return Ok(respuesta);
         }
 
         // 2. GET: api/Clientes/5 (Obtener un cliente por ID)

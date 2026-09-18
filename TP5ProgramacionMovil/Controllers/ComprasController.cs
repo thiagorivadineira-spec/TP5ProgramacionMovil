@@ -17,16 +17,42 @@ namespace TP5ProgramacionMovil.Controllers
             _context = context;
         }
 
-        // GET: api/Compras
+        // GET: api/Compras?pagina=1&tamanoPagina=10&buscar=proveedor&ordenarPor=fecha_desc
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CompraResponseDto>>> GetCompras()
+        public async Task<ActionResult<RespuestaPaginadaDto<CompraResponseDto>>> GetCompras(
+            [FromQuery] ParametrosPaginacionDto parametros)
         {
-            var compras = await _context.Compras
+            var query = _context.Compras
                 .AsNoTracking()
-                .Include(c => c.Proveedor)
-                .Include(c => c.Usuario)
-                .Include(c => c.Detalles)
-                    .ThenInclude(d => d.Producto)
+                .AsQueryable();
+
+            // Búsqueda opcional por proveedor o usuario
+            if (!string.IsNullOrWhiteSpace(parametros.Buscar))
+            {
+                var termino = parametros.Buscar.Trim().ToLower();
+
+                query = query.Where(c =>
+                    c.Proveedor.RazonSocial.ToLower().Contains(termino) ||
+                    c.Usuario.Nombre.ToLower().Contains(termino));
+            }
+
+            // Total antes de paginar
+            var totalRegistros = await query.CountAsync();
+
+            // Ordenamiento
+            query = parametros.OrdenarPor?.ToLower() switch
+            {
+                "fecha" => query.OrderBy(c => c.Fecha),
+                "fecha_desc" => query.OrderByDescending(c => c.Fecha),
+                "total_asc" => query.OrderBy(c => c.Total),
+                "total_desc" => query.OrderByDescending(c => c.Total),
+                _ => query.OrderBy(c => c.Id)
+            };
+
+            // Paginación
+            var compras = await query
+                .Skip((parametros.Pagina - 1) * parametros.TamanoPagina)
+                .Take(parametros.TamanoPagina)
                 .Select(c => new CompraResponseDto
                 {
                     Id = c.Id,
@@ -51,7 +77,14 @@ namespace TP5ProgramacionMovil.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(compras);
+            var respuesta = new RespuestaPaginadaDto<CompraResponseDto>(
+                compras,
+                totalRegistros,
+                parametros.Pagina,
+                parametros.TamanoPagina
+            );
+
+            return Ok(respuesta);
         }
 
         // GET: api/Compras/5

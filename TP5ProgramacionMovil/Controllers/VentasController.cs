@@ -17,20 +17,51 @@ namespace TP5ProgramacionMovil.Controllers
             _context = context;
         }
 
+        // GET: api/Ventas?pagina=1&tamanoPagina=10&buscar=cliente&ordenarPor=fecha_desc
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<VentaResponseDto>>> GetVentas()
+        public async Task<ActionResult<RespuestaPaginadaDto<VentaResponseDto>>> GetVentas(
+            [FromQuery] ParametrosPaginacionDto parametros)
         {
-            var ventas = await _context.Ventas
-                .Include(v => v.Cliente)
-                .Include(v => v.Detalles)
-                    .ThenInclude(d => d.Producto)
+            var query = _context.Ventas
+                .AsNoTracking()
+                .AsQueryable();
+
+            // Búsqueda opcional por nombre del cliente
+            if (!string.IsNullOrWhiteSpace(parametros.Buscar))
+            {
+                var termino = parametros.Buscar.Trim().ToLower();
+
+                query = query.Where(v =>
+                    v.Cliente.Nombre.ToLower().Contains(termino));
+            }
+
+            // Cantidad total antes de paginar
+            var totalRegistros = await query.CountAsync();
+
+            // Ordenamiento
+            query = parametros.OrdenarPor?.ToLower() switch
+            {
+                "fecha" => query.OrderBy(v => v.Fecha),
+                "fecha_desc" => query.OrderByDescending(v => v.Fecha),
+                "total_asc" => query.OrderBy(v => v.Total),
+                "total_desc" => query.OrderByDescending(v => v.Total),
+                _ => query.OrderBy(v => v.Id)
+            };
+
+            // Paginación
+            var ventas = await query
+                .Skip((parametros.Pagina - 1) * parametros.TamanoPagina)
+                .Take(parametros.TamanoPagina)
                 .Select(v => new VentaResponseDto
                 {
                     Id = v.Id,
                     Fecha = v.Fecha,
                     Total = v.Total,
                     NombreCliente = v.Cliente.Nombre,
-                    NombreUsuario = "Admin", // Esto se cambiará cuando integren JWT
+
+                    // Temporal hasta integrar completamente JWT
+                    NombreUsuario = "Admin",
+
                     Detalles = v.Detalles.Select(d => new DetalleVentaResponseDto
                     {
                         ProductoId = d.ProductoId,
@@ -42,7 +73,14 @@ namespace TP5ProgramacionMovil.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ventas);
+            var respuesta = new RespuestaPaginadaDto<VentaResponseDto>(
+                ventas,
+                totalRegistros,
+                parametros.Pagina,
+                parametros.TamanoPagina
+            );
+
+            return Ok(respuesta);
         }
 
         [HttpPost]
