@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
 using TP5ProgramacionMovil.Data;
-using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
