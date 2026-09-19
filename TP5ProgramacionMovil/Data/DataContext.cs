@@ -142,6 +142,43 @@ namespace TP5ProgramacionMovil.Data
                     CategoriaProductoId = 4
                 }
             );
+
+            // CLIENTES 
+            modelBuilder.Entity<Cliente>().HasData(
+                new
+                {
+                    Id = 1,
+                    Nombre = "Consumidor Final",
+                    Documento = "00000000",
+                    Telefono = "S/N",
+                    Email = "cf@sistema.com",
+                    Direccion = "S/D",
+                    Activo = true
+                },
+                new
+                {
+                    Id = 2,
+                    Nombre = "Thiago Rivadineira",
+                    Documento = "12345678",
+                    Telefono = "2954-112233",
+                    Email = "thiago@correo.com",
+                    Direccion = "Av. San Martín 123",
+                    Activo = true
+                }
+            );
+
+            // USUARIOS (Para probar tu AuthController)
+            modelBuilder.Entity<Usuario>().HasData(
+                new
+                {
+                    Id = 1,
+                    Nombre = "Administrador del Sistema",
+                    Username = "admin",
+                    PasswordHash = "123", 
+                    Rol = "Admin",
+                    Activo = true
+                }
+            );
         }
 
     }

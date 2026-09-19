@@ -17,12 +17,41 @@ namespace TP5ProgramacionMovil.Controllers
             _context = context;
         }
 
-        // GET: api/Proveedores
+        // GET: api/Proveedores?pagina=1&tamanoPagina=10&buscar=tech&ordenarPor=nombre
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProveedorResponseDto>>> GetProveedores()
+        public async Task<ActionResult<RespuestaPaginadaDto<ProveedorResponseDto>>> GetProveedores(
+            [FromQuery] ParametrosPaginacionDto parametros)
         {
-            var proveedores = await _context.Proveedores
+            var query = _context.Proveedores
                 .AsNoTracking()
+                .AsQueryable();
+
+            // Búsqueda opcional
+            if (!string.IsNullOrWhiteSpace(parametros.Buscar))
+            {
+                var termino = parametros.Buscar.Trim().ToLower();
+
+                query = query.Where(p =>
+                    p.RazonSocial.ToLower().Contains(termino) ||
+                    (p.Cuit != null && p.Cuit.ToLower().Contains(termino)) ||
+                    (p.Email != null && p.Email.ToLower().Contains(termino)));
+            }
+
+            // Cantidad total antes de paginar
+            var totalRegistros = await query.CountAsync();
+
+            // Ordenamiento
+            query = parametros.OrdenarPor?.ToLower() switch
+            {
+                "nombre" => query.OrderBy(p => p.RazonSocial),
+                "nombre_desc" => query.OrderByDescending(p => p.RazonSocial),
+                _ => query.OrderBy(p => p.Id)
+            };
+
+            // Paginación
+            var proveedores = await query
+                .Skip((parametros.Pagina - 1) * parametros.TamanoPagina)
+                .Take(parametros.TamanoPagina)
                 .Select(p => new ProveedorResponseDto
                 {
                     Id = p.Id,
@@ -35,7 +64,14 @@ namespace TP5ProgramacionMovil.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(proveedores);
+            var respuesta = new RespuestaPaginadaDto<ProveedorResponseDto>(
+                proveedores,
+                totalRegistros,
+                parametros.Pagina,
+                parametros.TamanoPagina
+            );
+
+            return Ok(respuesta);
         }
 
         // GET: api/Proveedores/5
