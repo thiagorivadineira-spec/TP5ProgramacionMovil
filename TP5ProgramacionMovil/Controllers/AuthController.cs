@@ -26,6 +26,14 @@ namespace TP5ProgramacionMovil.Controllers
         [HttpPost("Registro")]
         public async Task<IActionResult> Registro(RegistroRequestDto registroDto)
         {
+            // 1. Validar que el rol ingresado sea correcto
+            var rolesPermitidos = new[] { "Admin", "Vendedor", "Cliente" };
+
+            if (!rolesPermitidos.Contains(registroDto.Rol))
+            {
+                return BadRequest($"El rol '{registroDto.Rol}' no es válido. Roles permitidos: {string.Join(", ", rolesPermitidos)}");
+            }
+
             if (await _context.Usuarios.AnyAsync(u => u.Username == registroDto.Username))
                 return BadRequest("El nombre de usuario ya está en uso.");
 
