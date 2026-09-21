@@ -8,7 +8,6 @@ using TP5ProgramacionMovil.Models;
 
 namespace TP5ProgramacionMovil.Controllers
 {
-    [Authorize] // Requiere autenticación para acceder a este controlador
     [ApiController]
     [Route("api/[controller]")]
     public class ProductosController : ControllerBase
@@ -34,6 +33,8 @@ namespace TP5ProgramacionMovil.Controllers
         }
 
         // GET: api/Productos?pagina=1&tamanoPagina=10&buscar=mouse&ordenarPor=precio_asc
+        // GET: Permitido para todos los roles válidos
+        [Authorize(Roles = "Admin, Vendedor, Cliente")]
         [HttpGet]
         public async Task<ActionResult<RespuestaPaginadaDto<ProductoResponseDto>>> GetProductos(
             [FromQuery] ParametrosPaginacionDto parametros)
@@ -152,6 +153,8 @@ namespace TP5ProgramacionMovil.Controllers
         }
 
         // POST: api/Productos
+        // POST: Estrictamente bloqueado. Solo Admin (o Vendedor) puede crear.
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<ProductoResponseDto>> CrearProducto(
             ProductoRequestDto dto)
@@ -321,6 +324,7 @@ namespace TP5ProgramacionMovil.Controllers
         }
 
         // PUT: api/Productos/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> ActualizarProducto(
             int id,
@@ -362,6 +366,7 @@ namespace TP5ProgramacionMovil.Controllers
         }
 
         // DELETE: api/Productos/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> EliminarProducto(int id)
         {

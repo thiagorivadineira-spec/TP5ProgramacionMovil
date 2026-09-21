@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims; // <-- Necesario para leer los datos del token
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TP5ProgramacionMovil.Data;
@@ -91,13 +92,23 @@ namespace TP5ProgramacionMovil.Controllers
             var cliente = await _context.Clientes.FindAsync(ventaDto.ClienteId);
             if (cliente == null || !cliente.Activo) return BadRequest("Cliente no válido o inactivo.");
 
+            // --- MAGIA JWT: Extraemos el ID del usuario directamente del token ---
+            var usuarioIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(usuarioIdString) || !int.TryParse(usuarioIdString, out int usuarioId))
+            {
+                return Unauthorized("Token inválido o usuario no identificado.");
+            }
+            // ---------------------------------------------------------------------
+
             var nuevaVenta = new Venta
             {
                 ClienteId = ventaDto.ClienteId,
+                UsuarioId = usuarioId,
                 Fecha = DateTime.Now,
                 Total = 0,
                 Detalles = new List<DetalleVenta>()
             };
+
 
             foreach (var detalleDto in ventaDto.Detalles)
             {
